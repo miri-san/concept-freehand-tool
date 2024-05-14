@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freehand</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: black;
+        }
+
+        video {
+            width: 75vw;
+            border: 1px solid #282828;
+            /* border-radius: 24px; */
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        canvas {
+            position: absolute;
+            visibility: hidden;
+            z-index: 2;
+            top: 0;
+            left: 0;
+        }
+
+        #frame {
+            position: absolute;
+            pointer-events: none;
+            top: 0;
+            left: 0;
+            z-index: 3;
+        }
+
+        button {
+            background-color: #282828;
+            color: #e2e2e2;
+            padding: 0.5rem 1rem;
+            border: none;
+            outline: none;
+            border-radius: 1rem;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background-color: #363636;
+            color: #ffffff;
+        }
+
+        div.buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #image-container {
+            height: 300px;
+            margin-top: 100vh;
+            position: inherit;
+            width: 100%;
+            display: flex;
+            padding: 12px;
+            gap: 12px;
+            background-color: #101010;
+        }
+
+        #image-container>img {
+            width: auto;
+        }
+
+        .seek {
+            width: 0px;
+            height: 4px;
+            background-color: #4d4d4d;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .seeked {
+            height: 100%;
+            width: 0px;
+            background-color: #FFCD2E;
+            transition: all 50ms ease-in;
+        }
+
+        .bubble {
+            position: absolute;
+            top: -100%;
+            left: 0px;
+            width: 12px;
+            height: 12px;
+            border-radius: 12px;
+            background-color: black;
+            border: 1px solid black;
+        }
+
+        .bubble:hover>img {
+            display: inline;
+            z-index: 6;
+        }
+
+        .bubble img {
+            display: none;
+            width: 100px;
+            height: auto;
+            position: absolute;
+            transform: translate(-40%, -110%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 12px;
+        }
+
+        .border-yellow {
+            border: 2px solid #FFCD2E;
+        }
+
+        .border-red {
+            border: 2px solid #FF584E;
+        }
+
+        .border-blue {
+            border: 2px solid #4EB4FF;
+        }
+
+
+        input {
+            appearance: none;
+
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+
+            transition: 0.2s all linear;
+            margin-right: 5px;
+        }
+
+        input#color1 {
+            background-color: #FFCD2E;
+            border: 1px solid #FFCD2E;
+        }
+
+        input#color2 {
+            background-color: #FF584E;
+            border: 1px solid #FF584E;
+        }
+
+        input#color3 {
+            background-color: #4EB4FF;
+            border: 1px solid #4EB4FF;
+        }
+
+        input#color1:checked {
+            border: 4px solid #FFCD2E;
+            background-color: black;
+        }
+
+        input#color2:checked {
+            border: 4px solid #FF584E;
+            background-color: black;
+        }
+
+        input#color3:checked {
+            border: 4px solid #4EB4FF;
+            background-color: black;
+        }
+
+        .ink {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            background-color: #363636;
+            border-radius: 32px;
+        }
+
+        #save_image {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <video id="video" controls loop>
+        <source src="./Velt Main Video.mp4" type="">
+    </video>
+    <div class="seek">
+        <div class="seeked"></div>
+    </div>
+    <img src="" alt="" id="frame">
+    <canvas id="canvas"></canvas>
+    <div class="buttons">
+
+        <div class="ink">
+            <input onclick="selectedInk = 'YELLOW'" type="radio" id="color1" name="color" value="YELLOW" checked />
+            <input onclick="selectedInk = 'RED'" type="radio" id="color2" name="color" value="RED" />
+            <input onclick="selectedInk = 'BLUE'" type="radio" id="color3" name="color" value="BLUE" />
+        </div>
+
+        <!-- <button onclick="selectedInk = 'RED'">red</button>
+        <button onclick="selectedInk = 'YELLOW'">yellow</button>
+        <button onclick="selectedInk = 'BLUE'">blue</button> -->
+        <button id="draw" onclick="draw(captureImageAtTime(video.currentTime))"><svg xmlns="http://www.w3.org/2000/svg"
+                width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"
+                class="icon icon-tabler icons-tabler-outline icon-tabler-writing">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                <path d="M20 17v-12c0 -1.121 -.879 -2 -2 -2s-2 .879 -2 2v12l2 2l2 -2z" />
+                <path d="M16 7h4" />
+                <path d="M18 19h-13a2 2 0 1 1 0 -4h4a2 2 0 1 0 0 -4h-3" />
+            </svg></button>
+        <button id="save_image" onclick="saveImage()">Save Image</button>
+        <button id="show_image" onclick=" showImage()">Show Image</button>
+    </div>
+    <div id="image-container"></div>
+    <script src="./index.js"></script>
+</body>
+
+</html>
